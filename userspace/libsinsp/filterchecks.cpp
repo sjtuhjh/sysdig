@@ -1594,6 +1594,18 @@ static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
 	}
 }
 
+// Given the provided threadinfo, determine if it's a shell. If so,
+// set *res to the thread's pid.
+static inline void set_pid_for_shell(sinsp_threadinfo *mt, int64_t **res)
+{
+	size_t len = mt->m_comm.size();
+
+	if(len >= 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+	{
+		*res = &mt->m_pid;
+	}
+}
+
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -1636,15 +1648,26 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				// declare it to be the session leader.
 				sinsp_threadinfo* mt = tinfo->get_main_thread();
 				sinsp_threadinfo* pt = NULL;
+				sinsp_threadinfo *start = NULL;
 
 				if(mt == NULL)
 				{
 					return NULL;
 				}
 
-				for(pt = mt->get_parent_thread();
+				for(start = mt, pt = mt->get_parent_thread();
 				    pt != NULL && pt->m_sid == mt->m_sid;
-				    mt = pt, pt = pt->get_parent_thread());
+				    mt = pt, pt = pt->get_parent_thread())
+				{
+					// Detect loops in parent thread state and exit
+					if(pt == start)
+					{
+						start->note_parent_state_loop();
+
+						// We'll use the thread that points to the start as the highest ancestor
+						break;
+					}
+				}
 
 				// At this point pt either doesn't exist or has a different session id.
 				// mt's comm is considered the session leader.
@@ -1900,6 +1923,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_LOGINSHELLID:
 		{
 			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* pt = NULL;
 			int64_t* res = NULL;
 
 			if(tinfo->is_main_thread())
@@ -1916,14 +1940,23 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			for(; mt != NULL; mt = mt->get_parent_thread())
-			{
-				size_t len = mt->m_comm.size();
+			// First check the main thread.
+			set_pid_for_shell(mt, &res);
 
-				if(len >= 2 && mt->m_comm[len - 2] == 's' && mt->m_comm[len - 1] == 'h')
+			// Now check the thread's ancestors.
+			for(pt = mt->get_parent_thread();
+			    pt != NULL;
+			    pt = pt->get_parent_thread())
+			{
+				// Detect loops in parent thread state and exit
+				if(pt == mt)
 				{
-					res = &mt->m_pid;
+					mt->note_parent_state_loop();
+
+					break;
 				}
+
+				set_pid_for_shell(pt, &res);
 			}
 
 			return (uint8_t*)res;
@@ -2141,7 +2174,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 {
 	bool res;
-	uint32_t j;
 
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -2151,6 +2183,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 	}
 
 	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* pt = NULL;
 
 	if(tinfo->is_main_thread())
 	{
@@ -2169,18 +2202,25 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 	//
 	// No id specified, search in all of the ancestors
 	//
-	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	for(pt = mt->get_parent_thread();
+	    pt != NULL;
+	    pt = pt->get_parent_thread())
 	{
-		if(j > 0)
+		// Detect loops in parent thread state and exit
+		if(pt == mt)
 		{
-			res = flt_compare(m_cmpop,
-				PT_PID,
-				&mt->m_pid);
+			mt->note_parent_state_loop();
 
-			if(res == true)
-			{
-				return true;
-			}
+			break;
+		}
+
+		res = flt_compare(m_cmpop,
+				  PT_PID,
+				  &pt->m_pid);
+
+		if(res == true)
+		{
+			return true;
 		}
 	}
 
@@ -2190,7 +2230,6 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 {
 	bool res;
-	uint32_t j;
 
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -2200,6 +2239,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 	}
 
 	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* pt = NULL;
 
 	if(tinfo->is_main_thread())
 	{
@@ -2218,18 +2258,24 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 	//
 	// No id specified, search in all of the ancestors
 	//
-	for(j = 0; mt != NULL; mt = mt->get_parent_thread(), j++)
+	for(pt = mt->get_parent_thread();
+	    pt != NULL;
+	    pt = pt->get_parent_thread())
 	{
-		if(j > 0)
+		// Detect loops in parent thread state and exit
+		if(pt == mt)
 		{
-			res = flt_compare(m_cmpop,
-				PT_CHARBUF,
-				(void*)mt->m_comm.c_str());
+			mt->note_parent_state_loop();
 
-			if(res == true)
-			{
-				return true;
-			}
+			break;
+		}
+		res = flt_compare(m_cmpop,
+				  PT_CHARBUF,
+				  (void*)pt->m_comm.c_str());
+
+		if(res == true)
+		{
+			return true;
 		}
 	}
 
