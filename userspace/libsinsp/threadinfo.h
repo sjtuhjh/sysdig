@@ -199,6 +199,11 @@ public:
 	uint64_t get_fd_limit();
 
 	//
+	// Note that this thread has a loop in parent state, and possibly log the loop.
+	//
+	void note_parent_state_loop();
+
+	//
 	// Core state
 	//
 	int64_t m_tid;  ///< The id of this thread
@@ -325,6 +330,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
+	bool m_parent_loop_detected;
 
 	friend class sinsp;
 	friend class sinsp_parser;

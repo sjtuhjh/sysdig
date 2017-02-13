@@ -86,6 +86,7 @@ void sinsp_threadinfo::init()
 	m_program_hash = 0;
 	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
+	m_parent_loop_detected = false;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -765,6 +766,20 @@ uint64_t sinsp_threadinfo::get_fd_opencount()
 uint64_t sinsp_threadinfo::get_fd_limit()
 {
 	return get_main_thread()->m_fdlimit;
+}
+
+void sinsp_threadinfo::note_parent_state_loop()
+{
+	// In debug mode, we trigger an assertion.
+	ASSERT(false);
+
+	// Note we only log a loop once for a given main thread, to avoid flooding logs.
+	if(!m_parent_loop_detected)
+	{
+		g_logger.log(string("Loop in parent thread state detected for pid ") +
+			     std::to_string(m_pid), sinsp_logger::SEV_WARNING);
+		m_parent_loop_detected = true;
+	}
 }
 
 sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
