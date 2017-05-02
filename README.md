@@ -1,4 +1,4 @@
-sysdig
+sysdig test
 ======
 
 [![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
