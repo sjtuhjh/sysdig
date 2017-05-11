@@ -69,6 +69,10 @@ public:
 		bool compress,
 		bool threads_from_sinsp=false);
 
+	void fdopen(int fd,
+		    bool compress,
+		    bool threads_from_sinsp=false);
+
 	/*!
 	  \brief Closes the dump file.
 	*/

@@ -81,6 +81,35 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 	m_inspector->m_container_manager.dump_containers(m_dumper);
 }
 
+void sinsp_dumper::fdopen(int fd, bool compress, bool threads_from_sinsp)
+{
+	if(m_inspector->m_h == NULL)
+	{
+		throw sinsp_exception("can't start event dump, inspector not opened yet");
+	}
+
+	if(threads_from_sinsp)
+	{
+		m_inspector->m_thread_manager->to_scap();
+	}
+
+	if(compress)
+	{
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_GZIP);
+	}
+	else
+	{
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_NONE);
+	}
+
+	if(m_dumper == NULL)
+	{
+		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+	}
+
+	m_inspector->m_container_manager.dump_containers(m_dumper);
+}
+
 void sinsp_dumper::close()
 {
 	if(m_dumper != NULL)

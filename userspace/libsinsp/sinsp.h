@@ -253,6 +253,16 @@ public:
 	*/
 	void open(string filename);
 
+	/*!
+	  \brief Start an event capture from a file descriptor.
+
+	  \param filename the trace file name.
+
+	  @throws a sinsp_exception containing the error string is thrown in case
+	   of failure.
+	*/
+	void fdopen(int fd);
+
 	void open_nodriver();
 
 	/*!
@@ -763,6 +773,7 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
+	void open_int();
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
@@ -839,6 +850,10 @@ private:
 	int64_t m_filesize;
 
 	scap_mode_t m_mode;
+
+        // If non-zero, reading from this fd and m_input_filename contains "fd
+        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
