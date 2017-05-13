@@ -707,6 +707,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	res->m_targetbuf = NULL;
 	res->m_targetbufcurpos = NULL;
 	res->m_targetbufend = NULL;
+	res->m_evtcnt = 0;
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
@@ -822,6 +823,7 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	res->m_targetbuf = targetbuf;
 	res->m_targetbufcurpos = targetbuf;
 	res->m_targetbufend = targetbuf + targetbufsize;
+	res->m_evtcnt = 0;
 
 	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
 	{
@@ -860,11 +862,33 @@ int64_t scap_dump_get_offset(scap_dumper_t *d)
 	}
 }
 
+//
+// Return the current file pointer position in the stream. For files,
+// this uses gztell, which differs slightly from the gzoffset used by
+// scap_dump_get_offset.
+//
+
+int64_t scap_dump_ftell(scap_dumper_t *d)
+{
+	if(d->m_type == DT_FILE)
+	{
+		return gztell(d->m_f);
+	}
+	else
+	{
+		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
+	}
+}
+
 void scap_dump_flush(scap_dumper_t *d)
 {
 	if(d->m_type == DT_FILE)
 	{
 		gzflush(d->m_f, Z_FULL_FLUSH);
+		/* fprintf(stderr, "FLUSH event %lu gzoffset=%lu gztell=%lu\n", */
+		/* 	d->m_evtcnt, */
+		/* 	gzoffset(d->m_f), */
+		/* 	gztell(d->m_f)); */
 	}
 }
 
@@ -904,6 +928,12 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
 			return SCAP_FAILURE;
 		}
+
+		d->m_evtcnt++;
+		/* fprintf(stderr, "Wrote event %lu gzoffset=%lu gztell=%lu\n", */
+		/* 	d->m_evtcnt, */
+		/* 	gzoffset(d->m_f), */
+		/* 	gztell(d->m_f)); */
 	}
 	else
 	{
@@ -924,6 +954,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
 			return SCAP_FAILURE;
 		}
+		handle->m_evtcnt++;
 	}
 
 	//
@@ -2232,6 +2263,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		bh.block_type != EV_BLOCK_TYPE_INT &&
 		bh.block_type != EVF_BLOCK_TYPE)
 	{
+//		fprintf(stderr, "UNEXPECTED block type %u\n", (uint32_t)bh.block_type);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
 		handle->m_unexpected_block_readsize = readsize;
 		return SCAP_UNEXPECTED_BLOCK;

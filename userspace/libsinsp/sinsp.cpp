@@ -95,6 +95,7 @@ sinsp::sinsp() :
 	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
+	m_input_fd = 0;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_hostname_and_port_resolution_enabled = false;
@@ -326,10 +327,12 @@ void sinsp::init()
 			}
 		}
 
+//		fprintf(stderr, "READ %lu CONTAINER EVENTS\n", ncnt);
 		//
-		// Rewind and consume the exact number of events
+		// Rewind, reset the event count, and consume the exact number of events
 		//
 		scap_fseek(m_h, off);
+		scap_event_reset_count(m_h);
 		for(uint32_t j = 0; j < ncnt; j++)
 		{
 			sinsp_evt* tevt;

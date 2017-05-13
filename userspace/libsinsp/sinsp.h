@@ -762,6 +762,10 @@ public:
 	{
 		return scap_ftell(m_h);
 	}
+	uint64_t get_offset()
+	{
+		return scap_get_readfile_offset(m_h);
+	}
 	void refresh_ifaddr_list();
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
@@ -844,6 +848,11 @@ private:
 	static std::string get_error_desc(const std::string& msg = "");
 
 	void restart_capture_at_filepos(uint64_t filepos);
+
+	void fseek(uint64_t filepos)
+	{
+		scap_fseek(m_h, filepos);
+	}
 
 	scap_t* m_h;
 	uint32_t m_nevts;

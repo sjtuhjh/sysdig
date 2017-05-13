@@ -589,6 +589,13 @@ uint64_t scap_event_get_ts(scap_evt* e);
 uint64_t scap_event_get_num(scap_t* handle);
 
 /*!
+  \brief Reset the event count to 0.
+
+  \param handle Handle to the capture instance.
+*/
+void scap_event_reset_count(scap_t* handle);
+
+/*!
   \brief Return the meta-information describing the given event
 
   \param e pointer to an event returned by \ref scap_next.
@@ -648,6 +655,18 @@ void scap_dump_close(scap_dumper_t *d);
   \return The current size of the dump file pointed by d.
 */
 int64_t scap_dump_get_offset(scap_dumper_t *d);
+
+/*!
+  \brief Return the starting position for the next read/write in the
+  tracefile. This differs slightly from scap_dump_get_offset, which
+  reports the position of the file descriptor within the file and
+  uses a system call.
+  (See zlib.h for the difference between gztell and gzoffset).
+
+  \param d The dump handle, returned by \ref scap_dump_open
+  \return The starting position for the next read/write in the file.
+*/
+int64_t scap_dump_ftell(scap_dumper_t *d);
 
 /*!
   \brief Flush all pending output into the file.

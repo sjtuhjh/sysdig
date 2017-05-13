@@ -115,6 +115,7 @@ struct scap_dumper
 	uint8_t* m_targetbuf;
 	uint8_t* m_targetbufcurpos;
 	uint8_t* m_targetbufend;
+	uint64_t m_evtcnt;
 };
 
 struct scap_ns_socket_list

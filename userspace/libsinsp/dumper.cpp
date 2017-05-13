@@ -27,6 +27,7 @@ sinsp_dumper::sinsp_dumper(sinsp* inspector)
 	m_dumper = NULL;
 	m_target_memory_buffer = NULL;
 	m_target_memory_buffer_size = 0;
+	m_nevts = 0;
 }
 
 sinsp_dumper::sinsp_dumper(sinsp* inspector, uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size)
@@ -119,6 +120,11 @@ void sinsp_dumper::close()
 	}
 }
 
+bool sinsp_dumper::is_open()
+{
+	return (m_dumper != NULL);
+}
+
 void sinsp_dumper::dump(sinsp_evt* evt)
 {
 	if(m_dumper == NULL)
@@ -135,6 +141,7 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
+	m_nevts++;
 }
 
 uint64_t sinsp_dumper::written_bytes()
@@ -151,6 +158,32 @@ uint64_t sinsp_dumper::written_bytes()
 	}
 
 	return written_bytes;
+}
+
+uint64_t sinsp_dumper::ftell()
+{
+	if(m_dumper == NULL)
+	{
+		return 0;
+	}
+
+	int64_t pos = scap_dump_ftell(m_dumper);
+	if(pos == -1)
+	{
+		throw sinsp_exception("error getting file position");
+	}
+
+	return pos;
+}
+
+uint64_t sinsp_dumper::num_events()
+{
+	if(m_dumper == NULL)
+	{
+		return 0;
+	}
+
+	return m_nevts;
 }
 
 void sinsp_dumper::flush()
