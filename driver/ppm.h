@@ -116,8 +116,9 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 
 #ifdef CONFIG_MIPS
   #define SYSCALL_TABLE_ID0 __NR_Linux
-#elif defined CONFIG_ARM
-  #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
+#elif defined CONFIG_ARM || CONFIG_ARM64
+#include <asm/unistd.h>
+  #define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_X86 || defined CONFIG_SUPERH
   #define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_PPC64

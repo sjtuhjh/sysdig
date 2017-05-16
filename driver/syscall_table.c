@@ -31,6 +31,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
 #else
+#ifdef __aarch64__
+#include <asm/unistd32.h>
+#endif
 #include <asm/syscall.h>
 #endif
 

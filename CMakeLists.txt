@@ -124,8 +124,7 @@ else()
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
-			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
+			URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -134,8 +133,7 @@ else()
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
-			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
+			URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND msvcbuild.bat
 			BUILD_BYPRODUCTS ${LUAJIT_LIB}
